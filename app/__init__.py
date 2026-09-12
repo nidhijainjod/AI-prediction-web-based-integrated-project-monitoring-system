@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for
 from flask_login import current_user
 
-from config import Config
+from config import Config, IS_SERVERLESS
 from app.extensions import db, login_manager, csrf
 
 
@@ -12,6 +12,12 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    if IS_SERVERLESS:
+        with app.app_context():
+            from app.seed_data import ensure_demo_data
+
+            ensure_demo_data()
 
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to access this page."

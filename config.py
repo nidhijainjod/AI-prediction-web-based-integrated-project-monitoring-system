@@ -1,8 +1,15 @@
 import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
-ML_ARTIFACTS_DIR = os.path.join(BASE_DIR, "app", "ml", "artifacts")
+
+# Vercel (and similar serverless hosts) give the app a read-only deployment
+# bundle plus a writable /tmp — set VERCEL automatically, so redirect any
+# writable paths there instead of the repo itself.
+IS_SERVERLESS = bool(os.environ.get("VERCEL"))
+INSTANCE_DIR = "/tmp" if IS_SERVERLESS else os.path.join(BASE_DIR, "instance")
+ML_ARTIFACTS_DIR = (
+    "/tmp/ml_artifacts" if IS_SERVERLESS else os.path.join(BASE_DIR, "app", "ml", "artifacts")
+)
 
 
 class Config:

@@ -17,8 +17,9 @@ from sklearn.ensemble import RandomForestRegressor
 import joblib
 
 from app.ml.features import FEATURE_NAMES, CATEGORIES
+from config import ML_ARTIFACTS_DIR
 
-ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), "artifacts")
+ARTIFACTS_DIR = ML_ARTIFACTS_DIR
 COST_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "cost_overrun_model.joblib")
 DELAY_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "delay_model.joblib")
 META_PATH = os.path.join(ARTIFACTS_DIR, "meta.joblib")
