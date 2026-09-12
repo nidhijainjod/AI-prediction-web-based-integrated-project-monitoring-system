@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('admin.dashboard') }}" class="text-decoration-none small"><i class="fa-solid fa-arrow-left"></i> Back to dashboard</a>
+        <h3 class="mb-0 mt-1">{{ project.name }}</h3>
+        <div class="text-muted">{{ project.client_name }} &middot; {{ project.category }} &middot; Managed by {{ project.manager.name }}</div>
+    </div>
+    <div class="text-end">
+        <span class="badge text-bg-{{ project.risk_level|risk_badge }} fs-6 mb-2">{{ project.risk_level or 'Not scored' }} Risk ({{ project.risk_score or 0 }}/100)</span>
+        <form method="POST" action="{{ url_for('admin.recalculate', project_id=project.id) }}" id="recalcForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary d-block ms-auto">
+                <i class="fa-solid fa-rotate"></i> Re-run AI Prediction
+            </button>
+        </form>
+        {% if project.last_predicted_at %}
+        <small class="text-muted">Last predicted: {{ project.last_predicted_at.strftime('%Y-%m-%d %H:%M') }} UTC</small>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Progress</div><div class="stat-value">{{ (project.percent_complete or 0)|round(0) }}%</div></div></div></div>
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Planned Budget</div><div class="stat-value">{{ project.planned_budget|currency }}</div></div></div></div>
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Predicted Final Cost</div><div class="stat-value">{{ (project.predicted_final_cost or project.planned_budget)|currency }}</div><div class="small {{ 'text-danger' if (project.predicted_overrun_pct or 0) > 0 else 'text-success' }}">{{ (project.predicted_overrun_pct or 0)|round(1) }}% vs plan</div></div></div></div>
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Predicted Completion</div><div class="stat-value fs-5">{{ project.predicted_completion_date.strftime('%Y-%m-%d') if project.predicted_completion_date else '—' }}</div><div class="small {{ 'text-danger' if (project.predicted_delay_days or 0) > 0 else 'text-success' }}">{{ (project.predicted_delay_days or 0)|round(0) }}d vs plan ({{ project.planned_end_date }})</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Cost Trend (Planned pace vs. Actual)</h6>
+                <canvas id="trendChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fa-solid fa-brain text-primary"></i> Why this risk score?</h6>
+                <ul class="list-group list-group-flush mb-3">
+                    {% for r in project.risk_reasons %}
+                    <li class="list-group-item small"><i class="fa-solid fa-circle-exclamation text-warning me-1"></i> {{ r }}</li>
+                    {% endfor %}
+                </ul>
+                {% if project.recommendations %}
+                <h6 class="card-title">Recommended actions</h6>
+                <ul class="list-group list-group-flush">
+                    {% for rec in project.recommendations %}
+                    <li class="list-group-item small"><i class="fa-solid fa-lightbulb text-success me-1"></i> {{ rec }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h6 class="card-title">Tasks ({{ project.task_count }}, {{ project.completed_task_count }} completed, {{ project.blocked_task_count }} blocked, {{ project.overdue_task_count }} overdue)</h6>
+        <div class="table-responsive">
+        <table class="table table-sm">
+            <thead><tr><th>Task</th><th>Assignee</th><th>Status</th><th class="text-end">Progress</th><th class="text-end">Planned End</th><th class="text-end">Est. Cost</th><th class="text-end">Actual Cost</th></tr></thead>
+            <tbody>
+            {% for t in project.tasks %}
+            <tr class="{{ 'table-danger' if t.is_overdue else '' }}">
+                <td>{{ t.name }}</td>
+                <td>{{ t.assignee.name if t.assignee else '—' }}</td>
+                <td><span class="badge text-bg-secondary">{{ t.status }}</span></td>
+                <td class="text-end">{{ t.percent_complete|round(0) }}%</td>
+                <td class="text-end">{{ t.planned_end }}</td>
+                <td class="text-end">{{ t.estimated_cost|currency }}</td>
+                <td class="text-end">{{ t.actual_cost|currency }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const TREND_DATA = {
+    labels: [{% for s in snapshots %}"{{ s.snapshot_date }}",{% endfor %}],
+    planned: [{% for s in snapshots %}{{ s.planned_cost_to_date }},{% endfor %}],
+    actual: [{% for s in snapshots %}{{ s.actual_cost_to_date }},{% endfor %}]
+};
+</script>
+<script src="{{ url_for('static', filename='js/project_detail.js') }}"></script>
+{% endblock %}

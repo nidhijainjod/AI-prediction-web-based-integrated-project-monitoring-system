@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('manager.projects') }}" class="text-decoration-none small"><i class="fa-solid fa-arrow-left"></i> Back to projects</a>
+        <h3 class="mb-0 mt-1">{{ project.name }}</h3>
+        <div class="text-muted">{{ project.client_name }} &middot; {{ project.category }} &middot; {{ project.status }}</div>
+    </div>
+    <div class="text-end">
+        <span class="badge text-bg-{{ project.risk_level|risk_badge }} fs-6 mb-2" id="riskBadge">{{ project.risk_level or 'Not scored' }} Risk (<span id="riskScoreVal">{{ project.risk_score or 0 }}</span>/100)</span>
+        <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('manager.project_edit', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-pen"></i> Edit</a>
+            <button type="button" id="recalcBtn" data-project-id="{{ project.id }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-rotate"></i> Re-run AI</button>
+            <form method="POST" action="{{ url_for('manager.project_delete', project_id=project.id) }}" onsubmit="return confirm('Delete this project and all its tasks?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Progress</div><div class="stat-value" id="progressVal">{{ (project.percent_complete or 0)|round(0) }}%</div></div></div></div>
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Planned Budget</div><div class="stat-value">{{ project.planned_budget|currency }}</div></div></div></div>
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Predicted Final Cost</div><div class="stat-value" id="predictedCostVal">{{ (project.predicted_final_cost or project.planned_budget)|currency }}</div><div class="small" id="overrunVal">{{ (project.predicted_overrun_pct or 0)|round(1) }}% vs plan</div></div></div></div>
+    <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-label">Predicted Delay</div><div class="stat-value" id="delayVal">{{ (project.predicted_delay_days or 0)|round(0) }}d</div><div class="small text-muted">planned end {{ project.planned_end_date }}</div></div></div></div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="card-title"><i class="fa-solid fa-brain text-primary"></i> Why this risk score?</h6>
+        <ul class="list-group list-group-flush mb-2" id="reasonsList">
+            {% for r in project.risk_reasons %}
+            <li class="list-group-item small"><i class="fa-solid fa-circle-exclamation text-warning me-1"></i> {{ r }}</li>
+            {% endfor %}
+        </ul>
+        <ul class="list-group list-group-flush" id="recommendationsList">
+            {% for rec in project.recommendations %}
+            <li class="list-group-item small"><i class="fa-solid fa-lightbulb text-success me-1"></i> {{ rec }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="card-title mb-0">Tasks</h6>
+            <a href="{{ url_for('manager.task_new', project_id=project.id) }}" class="btn btn-sm btn-primary"><i class="fa-solid fa-plus"></i> Add Task</a>
+        </div>
+        <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead><tr><th>Task</th><th>Assignee</th><th>Status</th><th style="width:160px;">Progress</th><th class="text-end">Planned End</th><th class="text-end">Cost (est/act)</th><th></th></tr></thead>
+            <tbody>
+            {% for t in project.tasks %}
+            <tr class="{{ 'table-danger' if t.is_overdue else '' }}" data-task-id="{{ t.id }}">
+                <td>{{ t.name }}</td>
+                <td>{{ t.assignee.name if t.assignee else '—' }}</td>
+                <td>
+                    <select class="form-select form-select-sm task-status-select" data-task-id="{{ t.id }}">
+                        {% for s in ["Not Started","In Progress","Blocked","Completed"] %}
+                        <option value="{{ s }}" {{ 'selected' if t.status == s else '' }}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <input type="range" class="form-range task-progress-range" min="0" max="100" value="{{ t.percent_complete }}" data-task-id="{{ t.id }}">
+                    <span class="small task-progress-label">{{ t.percent_complete|round(0) }}%</span>
+                </td>
+                <td class="text-end">{{ t.planned_end }}</td>
+                <td class="text-end">{{ t.estimated_cost|currency }} / {{ t.actual_cost|currency }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('manager.task_edit', project_id=project.id, task_id=t.id) }}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-pen"></i></a>
+                    <form method="POST" action="{{ url_for('manager.task_delete', project_id=project.id, task_id=t.id) }}" class="d-inline" onsubmit="return confirm('Delete this task?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-3">No tasks yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/project_manage.js') }}"></script>
+{% endblock %}

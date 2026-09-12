@@ -1,0 +1,61 @@
+:root {
+    --brand-primary: #3a5ccc;
+    --brand-dark: #22305c;
+}
+
+body {
+    background-color: #f4f6fb;
+}
+
+.app-navbar {
+    background: linear-gradient(90deg, var(--brand-dark), var(--brand-primary));
+}
+
+.stat-card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.stat-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #212529;
+}
+
+.project-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: none;
+    transition: transform 0.15s ease;
+}
+
+.project-card:hover {
+    transform: translateY(-2px);
+}
+
+.login-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable:hover {
+    color: var(--brand-primary);
+}
+
+th.sortable .fa-sort {
+    opacity: 0.35;
+    font-size: 0.75rem;
+    margin-left: 4px;
+}

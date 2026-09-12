@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ 'New Project' if is_new else 'Edit Project' }}{% endblock %}
+{% block content %}
+<h3 class="mb-3">{{ 'New Project' if is_new else 'Edit ' + project.name }}</h3>
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Project name</label>
+                    {{ form.name(class="form-control") }}
+                    {% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Client</label>
+                    {{ form.client_name(class="form-control") }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    {{ form.description(class="form-control", rows="3") }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Category</label>
+                    {{ form.category(class="form-select") }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Priority</label>
+                    {{ form.priority(class="form-select") }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    {{ form.status(class="form-select") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Planned start</label>
+                    {{ form.planned_start_date(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Planned end</label>
+                    {{ form.planned_end_date(class="form-control") }}
+                    {% for e in form.planned_end_date.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual start</label>
+                    {{ form.actual_start_date(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual end</label>
+                    {{ form.actual_end_date(class="form-control") }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Planned budget ($)</label>
+                    {{ form.planned_budget(class="form-control") }}
+                    {% for e in form.planned_budget.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Team size</label>
+                    {{ form.team_size(class="form-control") }}
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save Project</button>
+                <a href="{{ url_for('manager.projects') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

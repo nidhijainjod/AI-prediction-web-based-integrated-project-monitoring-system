@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h3 class="mb-0"><i class="fa-solid fa-gauge-high text-primary"></i> Portfolio Overview</h3>
+        <small class="text-muted">Auto-updated AI risk predictions across all projects</small>
+    </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-label">Total Projects</div>
+                <div class="stat-value">{{ summary.total_projects }}</div>
+                <div class="small text-muted">{{ summary.active_projects }} active &middot; {{ summary.completed_projects }} completed</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card h-100 border-danger-subtle">
+            <div class="card-body">
+                <div class="stat-label">At-Risk Projects</div>
+                <div class="stat-value text-danger">{{ summary.at_risk_count }}</div>
+                <div class="small text-muted">High + Critical risk</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-label">Planned Budget</div>
+                <div class="stat-value">{{ summary.total_planned_budget|currency }}</div>
+                <div class="small text-muted">across portfolio</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-label">Predicted Final Cost</div>
+                <div class="stat-value">{{ summary.total_predicted_cost|currency }}</div>
+                <div class="small {{ 'text-danger' if summary.total_overrun_amount > 0 else 'text-success' }}">
+                    {{ summary.total_overrun_amount|currency }} vs. plan
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-label">Avg. Predicted Overrun</div>
+                <div class="stat-value">{{ summary.avg_overrun_pct }}%</div>
+                <div class="small text-muted">active projects</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-label">Avg. Predicted Delay</div>
+                <div class="stat-value">{{ summary.avg_delay_days }}d</div>
+                <div class="small text-muted">active projects</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Risk Distribution</h6>
+                <canvas id="riskChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Planned vs. AI-Predicted Final Cost (top 8 by risk)</h6>
+                <canvas id="costChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compact, filterable project summary table (not a raw dump of every project) -->
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h6 class="card-title mb-0">Project Risk Summary</h6>
+            <div class="d-flex gap-2 flex-wrap">
+                <input type="text" id="searchInput" class="form-control form-control-sm" style="width:200px" placeholder="Search project or manager...">
+                <select id="riskFilter" class="form-select form-select-sm" style="width:150px">
+                    <option value="">All risk levels</option>
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+                <select id="statusFilter" class="form-select form-select-sm" style="width:150px">
+                    <option value="">All statuses</option>
+                    {% for s in ["Planning","In Progress","On Hold","Completed","Cancelled"] %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="table-responsive">
+        <table class="table table-hover align-middle" id="projectTable">
+            <thead>
+                <tr>
+                    <th data-sort="name" class="sortable">Project</th>
+                    <th data-sort="manager" class="sortable">Manager</th>
+                    <th data-sort="status" class="sortable">Status</th>
+                    <th data-sort="percent" class="sortable text-end">Progress</th>
+                    <th data-sort="budget" class="sortable text-end">Planned Budget</th>
+                    <th data-sort="predicted_cost" class="sortable text-end">Predicted Cost</th>
+                    <th data-sort="overrun" class="sortable text-end">Overrun %</th>
+                    <th data-sort="delay" class="sortable text-end">Delay (days)</th>
+                    <th data-sort="risk" class="sortable text-end">Risk</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in projects %}
+                <tr data-name="{{ p.name|lower }}" data-manager="{{ p.manager.name|lower }}"
+                    data-status="{{ p.status }}" data-risk="{{ p.risk_level or '' }}"
+                    data-percent="{{ p.percent_complete or 0 }}" data-budget="{{ p.planned_budget }}"
+                    data-predicted_cost="{{ p.predicted_final_cost or 0 }}"
+                    data-overrun="{{ p.predicted_overrun_pct or 0 }}" data-delay="{{ p.predicted_delay_days or 0 }}"
+                    data-risk_score="{{ p.risk_score or 0 }}">
+                    <td>
+                        <a href="{{ url_for('admin.project_detail', project_id=p.id) }}" class="fw-semibold text-decoration-none">{{ p.name }}</a>
+                        <div class="small text-muted">{{ p.category }}</div>
+                    </td>
+                    <td>{{ p.manager.name }}</td>
+                    <td><span class="badge text-bg-secondary">{{ p.status }}</span></td>
+                    <td class="text-end">
+                        <div class="progress" style="height:6px; width:80px; display:inline-block; vertical-align:middle;">
+                            <div class="progress-bar" style="width:{{ p.percent_complete or 0 }}%"></div>
+                        </div>
+                        <span class="small ms-1">{{ (p.percent_complete or 0)|round(0) }}%</span>
+                    </td>
+                    <td class="text-end">{{ p.planned_budget|currency }}</td>
+                    <td class="text-end">{{ (p.predicted_final_cost or p.planned_budget)|currency }}</td>
+                    <td class="text-end {{ 'text-danger' if (p.predicted_overrun_pct or 0) > 10 else '' }}">
+                        {{ (p.predicted_overrun_pct or 0)|round(1) }}%
+                    </td>
+                    <td class="text-end {{ 'text-danger' if (p.predicted_delay_days or 0) > 5 else '' }}">
+                        {{ (p.predicted_delay_days or 0)|round(0) }}
+                    </td>
+                    <td class="text-end">
+                        <span class="badge text-bg-{{ p.risk_level|risk_badge }}">{{ p.risk_level or 'N/A' }}</span>
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('admin.project_detail', project_id=p.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-circle-info"></i> Details
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <div id="noResults" class="text-center text-muted py-4" style="display:none;">No projects match your filters.</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const RISK_DATA = {
+    labels: ["Low", "Medium", "High", "Critical"],
+    values: [{{ summary.low_count }}, {{ summary.medium_count }}, {{ summary.high_count }}, {{ summary.critical_count }}],
+    colors: ["#2e7d32", "#f9a825", "#d84315", "#212121"]
+};
+const COST_DATA = {
+    labels: [{% for p in projects[:8] %}"{{ p.name|truncate(18) }}",{% endfor %}],
+    planned: [{% for p in projects[:8] %}{{ p.planned_budget }},{% endfor %}],
+    predicted: [{% for p in projects[:8] %}{{ p.predicted_final_cost or p.planned_budget }},{% endfor %}]
+};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

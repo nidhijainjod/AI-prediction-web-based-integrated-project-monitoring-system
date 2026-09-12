@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}My Projects{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0"><i class="fa-solid fa-list-check text-primary"></i> {{ 'All Projects' if current_user.is_admin else 'My Projects' }}</h3>
+    <a href="{{ url_for('manager.project_new') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Project</a>
+</div>
+
+{% if not projects %}
+<div class="card"><div class="card-body text-center text-muted py-5">
+    <i class="fa-solid fa-folder-open fa-2x mb-2"></i>
+    <p>No projects yet. Create your first project to start tracking AI-predicted risk.</p>
+</div></div>
+{% endif %}
+
+<div class="row g-3">
+    {% for p in projects %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 project-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title mb-1">{{ p.name }}</h5>
+                    <span class="badge text-bg-{{ p.risk_level|risk_badge }}">{{ p.risk_level or 'N/A' }}</span>
+                </div>
+                <div class="text-muted small mb-2">{{ p.client_name }} &middot; {{ p.category }} &middot; {{ p.status }}</div>
+                <div class="progress mb-2" style="height:8px;">
+                    <div class="progress-bar" style="width:{{ p.percent_complete or 0 }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mb-3">
+                    <span>{{ (p.percent_complete or 0)|round(0) }}% complete</span>
+                    <span>{{ p.task_count }} tasks</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-3">
+                    <span>Budget: {{ p.planned_budget|currency }}</span>
+                    <span class="{{ 'text-danger' if (p.predicted_overrun_pct or 0) > 10 else '' }}">Overrun: {{ (p.predicted_overrun_pct or 0)|round(1) }}%</span>
+                </div>
+                <a href="{{ url_for('manager.project_detail', project_id=p.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="fa-solid fa-arrow-right"></i> Open Project
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

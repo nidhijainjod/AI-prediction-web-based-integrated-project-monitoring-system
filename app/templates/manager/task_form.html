@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ 'New Task' if is_new else 'Edit Task' }}{% endblock %}
+{% block content %}
+<h3 class="mb-3">{{ 'New Task' if is_new else 'Edit Task' }} <small class="text-muted fs-6">for {{ project.name }}</small></h3>
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Task name</label>
+                    {{ form.name(class="form-control") }}
+                    {% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Assignee</label>
+                    {{ form.assignee_id(class="form-select") }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    {{ form.description(class="form-control", rows="2") }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    {{ form.status(class="form-select") }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Priority</label>
+                    {{ form.priority(class="form-select") }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Percent complete</label>
+                    {{ form.percent_complete(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Planned start</label>
+                    {{ form.planned_start(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Planned end</label>
+                    {{ form.planned_end(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual start</label>
+                    {{ form.actual_start(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual end</label>
+                    {{ form.actual_end(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Estimated hours</label>
+                    {{ form.estimated_hours(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual hours</label>
+                    {{ form.actual_hours(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Estimated cost ($)</label>
+                    {{ form.estimated_cost(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual cost ($)</label>
+                    {{ form.actual_cost(class="form-control") }}
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save Task</button>
+                <a href="{{ url_for('manager.project_detail', project_id=project.id) }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
