@@ -5,3 +5,6 @@ instance/
 app/ml/artifacts/
 *.log
 .env
+
+.vercel
+.claude/
